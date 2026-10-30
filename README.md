@@ -18,8 +18,6 @@ rag_project/
 ├── frontend/
 │   ├── requirements.txt        # Frontend dependencies
 │   └── main.py                 # Streamlit application
-├── nginx/
-│   └── nginx.conf              # Reverse proxy configuration
 ├── data/                       # Document storage and test data
 └── scripts/                    # Utility scripts
 ```
