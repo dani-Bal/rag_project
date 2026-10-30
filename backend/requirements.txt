@@ -1,7 +1,7 @@
 # Backend requirements
-fastapi==0.162.0
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
+fastapi[standard]
+uvicorn[standard]
+python-multipart
 
 # Database
 

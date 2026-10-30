@@ -15,4 +15,4 @@ COPY ../backend/ ./app/
 RUN mkdir -p /app/data
 
 # Run fastapi
-CMD ["fastapi", "run", "app/main.py", "--port", "80"]
+CMD ["fastapi", "run", "main.py", "--port", "80"]
