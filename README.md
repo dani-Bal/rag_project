@@ -4,6 +4,26 @@ This repository is the starting point for a student-built Retrieval-Augmented Ge
 system. It currently contains repository infrastructure and a small application scaffold; the RAG
 workflow will be added incrementally.
 
+## Project Structure
+
+```
+rag_project/
+├── compose.yml                 # Main Docker Compose configuration
+├── docker/Dockerfile.backend   # Backend (FastAPI) Dockerfile
+├── docker/Dockerfile.frontend  # Frontend (Streamlit) Dockerfile
+├── README.md                   # This file
+├── backend/
+│   ├── requirements.txt        # Python dependencies
+│   └── main.py                 # FastAPI application
+├── frontend/
+│   ├── requirements.txt        # Frontend dependencies
+│   └── main.py                 # Streamlit application
+├── nginx/
+│   └── nginx.conf              # Reverse proxy configuration
+├── data/                       # Document storage and test data
+└── scripts/                    # Utility scripts
+```
+
 ## Technology
 
 Python 3.13, `uv`, Ruff, Pyright, Pytest, `pre-commit`, and `pydantic-settings`.
