@@ -13,10 +13,8 @@ rag_project/
 ├── docker/Dockerfile.frontend  # Frontend (Streamlit) Dockerfile
 ├── README.md                   # This file
 ├── backend/
-│   ├── requirements.txt        # Python dependencies
 │   └── main.py                 # FastAPI application
 ├── frontend/
-│   ├── requirements.txt        # Frontend dependencies
 │   └── main.py                 # Streamlit application
 ├── data/                       # Document storage and test data
 └── scripts/                    # Utility scripts
