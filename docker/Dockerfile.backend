@@ -1,18 +1,27 @@
-FROM python:3.14
+# -- Builder stage --
+FROM python:3.13-slim AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
 
 WORKDIR /app
 
-# Copy requirements
-COPY ../backend/requirements.txt /app/requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --no-dev
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+COPY . .
+RUN uv sync --frozen --no-dev --no-editable
 
-# Copy application code
-COPY ../backend/ ./app/
+# -- Runtime stage --
+FROM python:3.13-slim
 
-# Create data directory
-RUN mkdir -p /app/data
+WORKDIR /app
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/backend /app/backend
 
-# Run fastapi
-CMD ["fastapi", "run", "main.py", "--port", "80"]
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Run backend application.
+CMD ["fastapi", "run", "backend/main.py", "--host", "0.0.0.0", "--port", "8000"]

@@ -1598,6 +1598,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-multipart" },
+    { name = "requests" },
     { name = "streamlit" },
     { name = "uvicorn" },
 ]
@@ -1621,6 +1622,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.14.1" },
     { name = "pydantic-settings", specifier = ">=2.7,<3.0" },
     { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "requests", specifier = ">=2.34.2" },
     { name = "streamlit", specifier = ">=1.66.1" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]

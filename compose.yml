@@ -31,8 +31,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
-      - ./data:/app/data
+      - ./backend:/app/backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,7 +48,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app/frontend
     depends_on:
       backend:
         condition: service_started

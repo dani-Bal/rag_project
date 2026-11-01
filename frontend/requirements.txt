@@ -1,4 +1,0 @@
-# Frontend requirements
-altair
-pandas
-streamlit==1.66.1
