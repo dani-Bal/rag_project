@@ -4,12 +4,13 @@ FROM python:3.13-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_LOCKED=1
 
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project --no-dev
+RUN uv sync --no-install-project --no-dev
 
 COPY . .
 RUN uv sync --frozen --no-dev --no-editable
@@ -19,7 +20,7 @@ FROM python:3.13-slim
 
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/backend /app/backend
+COPY --from=builder /app/src/backend /app/backend
 
 ENV PATH="/app/.venv/bin:$PATH"
 

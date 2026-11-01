@@ -9,5 +9,5 @@ def read_root() -> dict:
 
 
 @app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None) -> dict:
+def read_item(item_id: int, q: str | None = None) -> dict[str, str | int]:
     return {"item_id": item_id, "q": q}
