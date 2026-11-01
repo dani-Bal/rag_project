@@ -47,3 +47,11 @@ uv run pytest tests/unit/ --cov=rag_project --cov-report=term-missing --cov-repo
   [architecture](docs/ARCHITECTURE.md), [coding guidelines](docs/CODING_GUIDELINES.md), and
   [contributing](docs/CONTRIBUTING.md) documentation.
 - `.github/`: CI, Dependabot, and issue/pull-request templates.
+
+
+## LLM installation (Ollama --> llama3.1; ~6.5 GB storage needed)
+
+install Ollama (https://ollama.com/download)
+
+```bash
+ollama pull llama3.1
