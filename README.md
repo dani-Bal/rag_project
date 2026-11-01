@@ -38,6 +38,32 @@ Keep real credentials in `.env`; never commit them.
 
 Run the scaffold with `uv run python -m rag_project.main`.
 
+## Docker Compose
+
+The project includes Docker Compose configuration for running the backend and frontend services:
+
+```bash
+# Build and start services
+docker compose up --build
+
+# Start services (after initial build)
+docker compose up
+
+# Stop services
+docker compose down
+
+# View logs
+docker compose logs -f
+```
+
+### Platform-specific Docker Setup
+
+- **Windows:** [Install Docker Desktop for Windows](https://docs.docker.com/desktop/install/windows-install/)
+- **Linux:** [Install Docker Engine for Linux](https://docs.docker.com/engine/install/)
+- **macOS:** [Install Docker Desktop for macOS](https://docs.docker.com/desktop/install/mac-install/)
+
+Ensure Docker Compose is available (v2+). Verify with `docker compose version`.
+
 ## Checks
 
 ```bash
@@ -64,7 +90,3 @@ uv run pytest tests/unit/ --cov=rag_project --cov-report=term-missing --cov-repo
   [architecture](docs/ARCHITECTURE.md), [coding guidelines](docs/CODING_GUIDELINES.md), and
   [contributing](docs/CONTRIBUTING.md) documentation.
 - `.github/`: CI, Dependabot, and issue/pull-request templates.
-
-
-## ToDo 
-- sql-alchemy ?
