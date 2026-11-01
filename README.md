@@ -12,10 +12,11 @@ rag_project/
 ├── docker/Dockerfile.backend   # Backend (FastAPI) Dockerfile
 ├── docker/Dockerfile.frontend  # Frontend (Streamlit) Dockerfile
 ├── README.md                   # This file
-├── backend/
-│   └── main.py                 # FastAPI application
-├── frontend/
-│   └── main.py                 # Streamlit application
+├── src/
+├──── backend/
+│       └── main.py                 # FastAPI application
+├──── frontend/
+│       └── main.py                 # Streamlit application
 ├── data/                       # Document storage and test data
 └── scripts/                    # Utility scripts
 ```
@@ -63,3 +64,7 @@ uv run pytest tests/unit/ --cov=rag_project --cov-report=term-missing --cov-repo
   [architecture](docs/ARCHITECTURE.md), [coding guidelines](docs/CODING_GUIDELINES.md), and
   [contributing](docs/CONTRIBUTING.md) documentation.
 - `.github/`: CI, Dependabot, and issue/pull-request templates.
+
+
+## ToDo 
+- sql-alchemy ?
