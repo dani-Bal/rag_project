@@ -1,0 +1,64 @@
+services:
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: rag_postgres
+    environment:
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+      POSTGRES_DB: rag_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - rag_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: rag_backend
+    environment:
+      - DATABASE_URL=postgresql://rag_user:rag_password@postgres:5432/rag_db
+      - PYTHONPATH=/app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src/backend:/app/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - rag_network
+    restart: unless-stopped
+
+  # Frontend (Streamlit)
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: rag_frontend
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src/frontend:/app/frontend
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - rag_network
+    restart: unless-stopped
+
+networks:
+  rag_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
