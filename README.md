@@ -59,7 +59,7 @@ docker compose up --build
 docker compose up
 
 # Start services detached
-docker compose up -d 
+docker compose up -d
 
 # Stop containers
 docker compose stop
