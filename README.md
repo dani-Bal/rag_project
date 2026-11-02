@@ -76,8 +76,11 @@ Ensure Docker Compose is available (v2+). Verify with `docker compose version`.
 ## Frontend URL
 http://localhost:8501
 
-## Backend
+## Backend URL
 http://localhost:8000/doc
+
+## Ollama Webui URL
+http://localhost:8080
 
 ## Checks
 
