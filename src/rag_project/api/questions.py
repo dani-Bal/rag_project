@@ -1,11 +1,12 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/questions", tags=["Questions"])
 
 
 class QuestionRequest(BaseModel):
-    question: str
+    # ... bedeutet Pflichtfeld, min_length=1 bedeutet, dass die Frage mindestens 1 Zeichen lang sein muss
+    question: str = Field(..., min_length=1)
 
 
 class QuestionResponse(BaseModel):
