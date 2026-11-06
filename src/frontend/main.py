@@ -1,44 +1,39 @@
-import altair as alt
-import numpy as np
-import pandas as pd
+import subprocess
 import streamlit as st
 
-"""
-# Welcome to Streamlit!
+st.set_page_config(page_title="AI chatbot")
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+st.title("Chatbot with Ollama")
+st.caption("Example frontend for testing local LLMs")
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# sidebar model selector
+model = st.sidebar.selectbox("Choose Local Model", ["llama3.1", "qwen3.5", "gemma3:1b"])
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+# Chat memory
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+# Chat memory
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
 
-df = pd.DataFrame(
-    {
-        "x": x,
-        "y": y,
-        "idx": indices,
-        "rand": np.random.randn(num_points),
-    }
-)
+# user input
+user_input = st.chat_input("Ask something...")
 
-st.altair_chart(
-    alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    )
-)
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
+
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    # Call Ollama
+    result = subprocess.run(["ollama", "run", model, user_input], capture_output=True, text=True)
+
+    reply = result.stdout.strip()
+
+    st.session_state.messages.append({"role": "assistant", "content": reply})
+
+    with st.chat_message("assistant"):
+        st.markdown(reply)
