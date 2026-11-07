@@ -8,7 +8,19 @@ version = "0.1.0"
 description = "A beginner-friendly Retrieval-Augmented Generation project."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["pydantic-settings>=2.7,<3.0"]
+dependencies = [
+    "asyncpg>=0.32.0",
+    "langchain>=1.4.7",
+    "langchain-openai>=1.7.3",
+    "langgraph-checkpoint-postgres>=3.2.0",
+    "openai>=3.42.0",
+    "pgvector>=0.5.1",
+    "psycopg[binary,pool]>=3.3.6",
+    "pydantic-ai>=2.64.0",
+    "pydantic-settings>=2.7,<3.0",
+    "qdrant-client>=1.20.0",
+    "sqlalchemy>=2.1.8",
+]
 
 [dependency-groups]
 dev = [
@@ -17,6 +29,7 @@ dev = [
     "pytest>=8.3,<9.0",
     "pytest-cov>=6.0,<7.0",
     "pytest-mock>=3.14,<4.0",
+    "python-dotenv>=1.0,<2.0",
     "ruff>=0.9,<1.0",
 ]
 
@@ -61,3 +74,7 @@ source = ["rag_project"]
 
 [tool.coverage.report]
 show_missing = true
+
+
+[tool.uv]
+package = true
