@@ -1,0 +1,76 @@
+"""Seed a small local document set for development and smoke testing."""
+
+from collections.abc import Sequence
+
+from openai import OpenAI
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from rag_project.database.models import DocumentChunk
+
+
+DUMMY_DOCUMENTS: tuple[tuple[str, str], ...] = (
+    (
+        "Project overview",
+        "RAG Project combines Ollama, PostgreSQL, pgvector, and Pydantic AI "
+        "to answer questions from a local document collection.",
+    ),
+    (
+        "Local development",
+        "The local stack runs Ollama for chat and embeddings and PostgreSQL with "
+        "the pgvector extension for similarity search.",
+    ),
+    (
+        "Embedding model",
+        "The default local embedding model is all-minilm, which produces "
+        "384-dimensional vectors.",
+    ),
+)
+
+
+def seed_documents(
+    session: Session,
+    embedding_client: OpenAI,
+    embedding_model_name: str,
+    documents: Sequence[tuple[str, str]] = DUMMY_DOCUMENTS,
+) -> int:
+    """Insert and embed missing development documents.
+
+    Documents are identified by title, making this safe to call on every startup.
+    Returns the number of documents inserted.
+    """
+
+    existing_titles = set(
+        session.scalars(
+            select(DocumentChunk.title).where(
+                DocumentChunk.title.in_([title for title, _ in documents])
+            )
+        )
+    )
+    missing_documents = [
+        (title, text) for title, text in documents if title not in existing_titles
+    ]
+
+    if not missing_documents:
+        return 0
+
+    embedding_response = embedding_client.embeddings.create(
+        model=embedding_model_name,
+        input=[text for _, text in missing_documents],
+    )
+    embeddings_by_index = {
+        item.index: item.embedding for item in embedding_response.data
+    }
+
+    session.add_all(
+        [
+            DocumentChunk(
+                title=title,
+                text=text,
+                embedding=embeddings_by_index[index],
+            )
+            for index, (title, text) in enumerate(missing_documents)
+        ]
+    )
+    session.commit()
+    return len(missing_documents)

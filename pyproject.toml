@@ -65,6 +65,7 @@ reportUnknownParameterType = "error"
 reportUnknownVariableType = "error"
 
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 addopts = "--strict-markers"
 testpaths = ["tests"]
 markers = ["integration: tests that exercise multiple components or external services"]
