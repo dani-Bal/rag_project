@@ -8,10 +8,17 @@ version = "0.1.0"
 description = "A beginner-friendly Retrieval-Augmented Generation project."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["pydantic-settings>=2.7,<3.0"]
+dependencies = [
+    "fastapi>=0.162.0",
+    "pydantic-settings>=2.7,<3.0",
+    "python-multipart>=0.0.32",
+    "uvicorn>=0.54.0",
+]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
+    "httpx2>=2.16.0",
     "pre-commit>=4.0,<5.0",
     "pyright>=1.1.390,<2.0",
     "pytest>=8.3,<9.0",
