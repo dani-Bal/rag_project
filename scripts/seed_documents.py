@@ -22,8 +22,7 @@ DUMMY_DOCUMENTS: tuple[tuple[str, str], ...] = (
     ),
     (
         "Embedding model",
-        "The default local embedding model is all-minilm, which produces "
-        "384-dimensional vectors.",
+        "The default local embedding model is all-minilm, which produces 384-dimensional vectors.",
     ),
 )
 
@@ -47,9 +46,7 @@ def seed_documents(
             )
         )
     )
-    missing_documents = [
-        (title, text) for title, text in documents if title not in existing_titles
-    ]
+    missing_documents = [(title, text) for title, text in documents if title not in existing_titles]
 
     if not missing_documents:
         return 0
@@ -58,9 +55,7 @@ def seed_documents(
         model=embedding_model_name,
         input=[text for _, text in missing_documents],
     )
-    embeddings_by_index = {
-        item.index: item.embedding for item in embedding_response.data
-    }
+    embeddings_by_index = {item.index: item.embedding for item in embedding_response.data}
 
     session.add_all(
         [
