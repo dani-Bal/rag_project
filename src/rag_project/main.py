@@ -10,14 +10,13 @@ from rag_project.agent.agent import build_agent
 from rag_project.agent.models import AgentContext
 from rag_project.agent.tools import retrieve_most_relevant_documents
 from rag_project.config import get_settings
-from rag_project.database.base import Base
+from rag_project.database.models import Base
 
 logger = logging.getLogger(__name__)
 
 
 def main() -> None:
     """Start the application scaffold."""
-
     settings = get_settings()
     tools = [retrieve_most_relevant_documents]
     agent = build_agent(tools=tools)
