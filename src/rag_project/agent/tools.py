@@ -1,3 +1,5 @@
+"""Define all tools for usage in the agent."""
+
 from pydantic_ai import RunContext
 from sqlalchemy import select
 
@@ -10,8 +12,7 @@ def retrieve_most_relevant_documents(
     query: str,
     num_docs: int,
 ) -> list[DocumentChunk]:
-    """
-    Retrieve the semantically most relevant documents for a query.
+    """Retrieve the semantically most relevant documents for a query.
 
     Args:
         ctx (RunContext[AgentContext]): The agent context, used for dependency injection.
