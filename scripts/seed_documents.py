@@ -37,8 +37,17 @@ def seed_documents(
 
     Documents are identified by title, making this safe to call on every startup.
     Returns the number of documents inserted.
-    """
 
+    Args:
+        session (Session): The session to interact with the database.
+        embedding_client (OpenAI): The client used for embedding queries.
+        embedding_model_name (str): The model name used for the embedding.
+        documents (Sequence[tuple[str, str]], optional): The list of documents
+            to use for seeding. Defaults to DUMMY_DOCUMENTS.
+
+    Returns:
+        int: Return the number of seeded documents.
+    """
     existing_titles = set(
         session.scalars(
             select(DocumentChunk.title).where(
