@@ -1,5 +1,6 @@
 """Application configuration loaded from environment variables."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +16,10 @@ class Settings(BaseSettings):
     db_user: str = Field(validation_alias="DB_USER")
     db_password: str = Field(validation_alias="DB_PASSWORD")
 
+    embedding_model: str = Field(
+        default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        validation_alias="EMBEDDING_MODEL",
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="RAG_PROJECT_",
@@ -27,4 +32,4 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return application settings loaded from the current environment."""
 
-    return Settings()
+    return Settings()  # pyright: ignore[reportCallIssue]
