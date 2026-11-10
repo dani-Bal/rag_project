@@ -57,7 +57,7 @@ select = [
 
 [tool.pyright]
 typeCheckingMode = "basic"
-include = ["src", "tests"]
+include = ["src", "tests", "scruots"]
 reportMissingParameterType = "error"
 reportMissingTypeArgument = "error"
 reportUnknownArgumentType = "error"
