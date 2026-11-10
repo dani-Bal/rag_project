@@ -10,7 +10,6 @@ from rag_project.main import main
 
 def test_settings_defaults() -> None:
     """Settings provide safe defaults for local development."""
-
     settings = Settings()
 
     assert settings.app_name == "rag-project"
@@ -19,7 +18,6 @@ def test_settings_defaults() -> None:
 
 def test_settings_read_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """Settings read values from the configured environment prefix."""
-
     monkeypatch.setenv("RAG_PROJECT_APP_NAME", "test-app")
     monkeypatch.setenv("RAG_PROJECT_DEBUG", "true")
 
@@ -31,7 +29,6 @@ def test_settings_read_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_main_logs_startup(caplog: pytest.LogCaptureFixture) -> None:
     """The application entry point logs its startup configuration."""
-
     caplog.set_level(logging.INFO, logger="rag_project.main")
 
     main()

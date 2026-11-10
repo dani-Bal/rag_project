@@ -25,5 +25,4 @@ class Settings(BaseSettings):
 
 def get_settings() -> Settings:
     """Return application settings loaded from the current environment."""
-
     return Settings()  # pyright: ignore[reportCallIssue]
