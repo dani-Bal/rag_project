@@ -2,7 +2,7 @@
 # TODO: Unit Tests
 # Verbindung aus Datei lesen (verschlüsselt)
 # TODO Embedding in datenbank
-
+# TODO Alchemy
 import sys
 from enum import StrEnum
 
@@ -51,7 +51,7 @@ def connectDatabase() -> psycopg.Connection:
         user=settings.db_user,
         password=settings.db_password,
     )
-
+    # KI-Vorschlag
     register_vector(connection)
     return connection
 
