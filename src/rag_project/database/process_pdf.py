@@ -26,7 +26,7 @@ def process_pdf(pdf_data: bytes) -> Document:
     # Unicode Fehler korrigieren
     # print("Vor dem Fix: " + text)
 
-    text = fix_text(text)
+    text = process_text(text)
     metadata = get_pdf_metadata(reader, len(pdf_data))
     # Tabelle extrahieren
 
