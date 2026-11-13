@@ -14,8 +14,10 @@ settings = get_settings()
 class DocumentChunk(Base):
     """Model a chunk of document stored in the database."""
 
-    __tablename__ = "document_chunks"
+    __tablename__ = "chunks"
     id = Column(Integer, primary_key=True)
-    title: Mapped[str] = mapped_column(nullable=False)
-    text: Mapped[str] = mapped_column(nullable=False)
+    content: Mapped[str] = mapped_column(nullable=False)
     embedding: Mapped[list[float]] = mapped_column(VECTOR(settings.vector_length), nullable=False)
+    run_id: Mapped[int]  # TODO add foreign key to chunk run orm once created
+    chunk_index: Mapped[int]
+    token_count: Mapped[int]

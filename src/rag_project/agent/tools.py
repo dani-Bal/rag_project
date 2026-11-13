@@ -37,4 +37,4 @@ def retrieve_most_relevant_documents(
         .order_by(DocumentChunkDB.embedding.l2_distance(embedded_query))
         .limit(num_docs)
     )
-    return [DocumentChunk(text=db_chunk.text, title=db_chunk.title) for db_chunk in db_chunks]
+    return [DocumentChunk(text=db_chunk.content) for db_chunk in db_chunks]
