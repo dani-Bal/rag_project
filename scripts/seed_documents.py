@@ -1,5 +1,6 @@
 """Create the local database schema and ingest one PDF into the chunks table."""
-#KI generiertes File
+
+# KI generiertes File
 import argparse
 from pathlib import Path
 
