@@ -69,14 +69,7 @@ select = [
     "ANN001",
     "ANN201",
     "ANN202",
-    "D",
-    "DOC201"
 ]
-
-preview = true
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
 
 [tool.pyright]
 typeCheckingMode = "basic"
