@@ -11,8 +11,8 @@ from rag_project.config import Settings
 
 
 @pytest.fixture(autouse=True)
-def mock_database_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Mock the database related environment variables.
+def mock_config_env_vars(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Mock the config related environment variables.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): The monkeypatch helper for manipulating the current env.
@@ -27,6 +27,10 @@ def mock_database_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "RAG_PROJECT_DATABASE_URL", "postgresql://rag_user:rag_password@postgres:5432/rag_project"
     )
     monkeypatch.setenv("RAG_PROJECT_EMBEDDING_MODEL_NAME", "mock_embedding_model")
+
+    # disable loading settings from .env file to isolate tests from local developer's .env file
+    # and make any inconsistencies visible as early as possible
+    monkeypatch.setattr(Settings, "model_config", Settings.model_config | {"env_file": None})
 
 
 def test_settings_defaults() -> None:
