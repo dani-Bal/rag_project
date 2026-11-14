@@ -8,10 +8,17 @@ from rag_project.config import Settings
 from rag_project.main import main
 
 
+@pytest.fixture(autouse=True)
+def mock_database_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DB_NAME", "test_database")
+    monkeypatch.setenv("DB_USER", "test_user")
+    monkeypatch.setenv("DB_PASSWORD", "test_password")
+
+
 def test_settings_defaults() -> None:
     """Settings provide safe defaults for local development."""
 
-    settings = Settings()
+    settings = Settings()  # pyright: ignore[reportCallIssue]
 
     assert settings.app_name == "rag-project"
     assert settings.debug is False
@@ -23,7 +30,7 @@ def test_settings_read_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RAG_PROJECT_APP_NAME", "test-app")
     monkeypatch.setenv("RAG_PROJECT_DEBUG", "true")
 
-    settings = Settings()
+    settings = Settings()  # pyright: ignore[reportCallIssue]
 
     assert settings.app_name == "test-app"
     assert settings.debug is True
