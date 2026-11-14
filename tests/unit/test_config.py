@@ -20,6 +20,13 @@ def mock_database_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DB_NAME", "test_database")
     monkeypatch.setenv("DB_USER", "test_user")
     monkeypatch.setenv("DB_PASSWORD", "test_password")
+    monkeypatch.setenv("RAG_PROJECT_VECTOR_LENGTH", "384")
+    monkeypatch.setenv("RAG_PROJECT_LLM_PROVIDER_URL", "http://mock.llm.prover.com")
+    monkeypatch.setenv("RAG_PROJECT_LLM_MODEL_NAME", "mock_model")
+    monkeypatch.setenv(
+        "RAG_PROJECT_DATABASE_URL", "postgresql://rag_user:rag_password@postgres:5432/rag_project"
+    )
+    monkeypatch.setenv("RAG_PROJECT_EMBEDDING_MODEL_NAME", "mock_embedding_model")
 
 
 def test_settings_defaults() -> None:
