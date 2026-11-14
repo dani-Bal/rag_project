@@ -99,6 +99,31 @@ Coverage can be generated with:
 uv run pytest tests/unit/ --cov=rag_project --cov-report=term-missing --cov-report=xml
 ```
 
+## Local CPU-only Ollama
+
+Start the bounded Ollama service with:
+
+```bash
+docker compose -f docker-compose.ollama.yml up -d
+docker exec rag-project-ollama ollama pull qwen2.5:3b
+docker exec rag-project-ollama ollama pull nomic-embed-text
+```
+
+The Compose file caps Ollama at 16 GiB RAM and six CPUs. The default assumes an
+eight-core host, leaving two cores for the host OS; set `OLLAMA_CPUS` to your
+host CPU count minus two when that differs. To use it from either RAG script,
+set `OPENAI_BASE_URL=http://localhost:11434/v1`, any non-empty
+`OPENAI_API_KEY`, `CHAT_MODEL=openai:qwen2.5:3b`, and
+`EMBEDDING_MODEL=nomic-embed-text`.
+
+For CPU-only interactive RAG, `qwen2.5:3b` is the practical starting point:
+it leaves headroom for the application and gives much better latency than a
+7B/8B model. Use `qwen2.5:7b` only if answer quality matters more than speed;
+it will fit under the memory cap in a quantized Ollama build but will be slower.
+`nomic-embed-text` is a local embedding model, so the Qdrant collection must
+use its vector dimension (768) rather than the 1536 dimensions used by
+`text-embedding-3-small`.
+
 ## Repository structure
 
 - `src/rag_project/`: installable application package and future RAG modules.
