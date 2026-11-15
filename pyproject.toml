@@ -12,8 +12,6 @@ dependencies = [
     "chonkie>=1.7.0",
     "datetime>=6.0",
     "ftfy>=6.3.1",
-    "pgvector>=0.5.1",
-    "psycopg[binary]>=3.3.8",
     "pydantic-settings>=2.7,<3.0",
     "pypdf>=7.0.0",
     "sentence-transformers>=6.2.0",
@@ -28,6 +26,16 @@ dependencies = [
     "sqlalchemy>=2.1.6",
     "streamlit>=1.66.1",
     "uvicorn>=0.54.0",
+    "asyncpg>=0.32.0",
+    "langchain>=1.4.7",
+    "langchain-openai>=1.7.3",
+    "langgraph-checkpoint-postgres>=3.2.0",
+    "openai>=3.42.0",
+    "pgvector>=0.5.1",
+    "psycopg[binary,pool]>=3.3.6",
+    "pydantic-ai>=2.64.0",
+    "qdrant-client>=1.20.0",
+    "sqlalchemy>=2.1.8",
 ]
 
 [dependency-groups]
@@ -37,6 +45,7 @@ dev = [
     "pytest>=8.3,<9.0",
     "pytest-cov>=6.0,<7.0",
     "pytest-mock>=3.14,<4.0",
+    "python-dotenv>=1.0,<2.0",
     "ruff>=0.9,<1.0",
 ]
 
@@ -64,7 +73,7 @@ select = [
 
 [tool.pyright]
 typeCheckingMode = "basic"
-include = ["src", "tests"]
+include = ["src", "tests", "scruots"]
 reportMissingParameterType = "error"
 reportMissingTypeArgument = "error"
 reportUnknownArgumentType = "error"
@@ -72,6 +81,7 @@ reportUnknownParameterType = "error"
 reportUnknownVariableType = "error"
 
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 addopts = "--strict-markers"
 testpaths = ["tests"]
 markers = ["integration: tests that exercise multiple components or external services"]
@@ -81,3 +91,7 @@ source = ["rag_project"]
 
 [tool.coverage.report]
 show_missing = true
+
+
+[tool.uv]
+package = true
