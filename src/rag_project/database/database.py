@@ -2,12 +2,13 @@
 # TODO: Unit Tests
 # Verbindung aus Datei lesen (verschlüsselt)
 # TODO Embedding in datenbank
-# TODO Alchemy
+"""Database operations using SQLAlchemy ORM."""
+
 import sys
 from enum import StrEnum
 from pathlib import Path
+from typing import Optional
 
-import psycopg
 from chonkie import (
     Chunk,
     LateChunker,
@@ -16,12 +17,21 @@ from chonkie import (
     SentenceChunker,
     TokenChunker,
 )
-from pgvector.psycopg import register_vector
+from sqlalchemy import text
 
 from rag_project.config import get_settings
 
 from .document import Document
 from .metadata import Metadata
+from .models import (
+    Base,
+    Chunk as ChunkModel,
+    ChunkingRun,
+    Document as DocumentModel,
+    PDFMetadata,
+    get_engine,
+    get_session,
+)
 from .process_pdf import process_pdf
 
 
@@ -48,24 +58,24 @@ text = (
 )
 
 
-def connect_database() -> psycopg.Connection:
-    settings = get_settings()
-
-    connection = psycopg.connect(
-        host=settings.db_host,
-        port=settings.db_port,
-        dbname=settings.db_name,
-        user=settings.db_user,
-        password=settings.db_password,
-    )
-    # KI-Vorschlag
-    register_vector(connection)
-    return connection
+def init_database() -> None:
+    """Initialize database tables."""
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
 
 
 def insert_document(document_name: str, document: Document, strategy: ChunkingStrategy) -> None:
+    """Insert a document into the database with chunking.
 
-    # Unsinnige und leere Eingaben abfangen
+    Args:
+        document_name: Name of the document file
+        document: Document object with content and metadata
+        strategy: Chunking strategy to use
+
+    Raises:
+        ValueError: If inputs are invalid
+    """
+    # Validate inputs
     if not document_name.strip():
         raise ValueError("Dokumentname darf nicht leer sein.")
 
@@ -76,110 +86,140 @@ def insert_document(document_name: str, document: Document, strategy: ChunkingSt
         raise ValueError("Kein Dokumentinhalt oder Metadaten vorhanden.")
 
     if not isinstance(strategy, ChunkingStrategy):
-        raise ValueError("Strategie muss vorhanden  sein.")
+        raise ValueError("Strategie muss vorhanden sein.")
 
     settings = get_settings()
     embedding_model = settings.embedding_model
 
-    # creating a cursor object
-    content = document.content
+    # Chunk the content
+    chunks = chunk_text(content=document.content, strategy=strategy)
 
-    # Chunking Strategie auswählen
-    chunks = chunk_text(content, strategy)
-    insert_into_database(document_name, document, strategy, chunks, embedding_model)
+    # Insert into database using ORM
+    insert_into_database_orm(
+        document_name=document_name,
+        document=document,
+        strategy=strategy,
+        chunks=chunks,
+        embedding_model=embedding_model,
+    )
 
 
-def insert_into_database(
+def insert_into_database_orm(
     document_name: str,
     document: Document,
     strategy: ChunkingStrategy,
     chunks: list[Chunk],
     embedding_model: str,
 ) -> None:
+    """Insert document data using SQLAlchemy ORM.
 
-    with connect_database() as connection:
-        cursor = connection.cursor()
-        # Daten in die Datenbank eintragen
-        # KI-generiertes SQL statement
-        cursor.execute(
-            """
-                    INSERT INTO pdf_metadata (
-                    title, author, subject, keywords,
-                    pdf_created_at, page_count, file_size_bytes
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id;
-                    """,
-            (
-                document.metadata.title,
-                document.metadata.author,
-                document.metadata.subject,
-                document.metadata.keywords,
-                document.metadata.pdf_created_at,
-                document.metadata.page_count,
-                document.metadata.file_size_bytes,
-            ),
+    Args:
+        document_name: Name of the document file
+        document: Document object with content and metadata
+        strategy: Chunking strategy
+        chunks: List of text chunks
+        embedding_model: Name of the embedding model used
+    """
+    session = get_session()
+
+    try:
+        # Insert PDF metadata
+        pdf_metadata = PDFMetadata(
+            title=document.metadata.title,
+            author=document.metadata.author,
+            subject=document.metadata.subject,
+            keywords=document.metadata.keywords,
+            pdf_created_at=document.metadata.pdf_created_at,
+            page_count=document.metadata.page_count,
+            file_size_bytes=document.metadata.file_size_bytes,
         )
+        session.add(pdf_metadata)
+        session.flush()  # Get the ID
 
-        result = cursor.fetchone()
-
-        if result is None:
-            raise RuntimeError("Keine ID zurückgegeben")
-
-        metadata_id = result[0]
-        cursor.execute(
-            "INSERT INTO documents (filename, content,metadata_id, original_pdf) VALUES (%s, %s, %s, %s) RETURNING id;",
-            (document_name, document.content, metadata_id, document.original_file),
+        # Insert document
+        db_document = DocumentModel(
+            filename=document_name,
+            content=document.content,
+            original_file=document.original_file,
+            metadata_id=pdf_metadata.id,
         )
-        result = cursor.fetchone()
+        session.add(db_document)
+        session.flush()
 
-        if result is None:
-            raise RuntimeError("Keine ID zurückgegeben")
-        document_id = result[0]
-
-        cursor.execute(
-            "INSERT INTO chunking_runs (document_id, strategy, parameters, embedding_model) VALUES (%s, %s, %s, %s) RETURNING id;",
-            (document_id, strategy.value, "{}", embedding_model),
+        # Insert chunking run
+        chunking_run = ChunkingRun(
+            document_id=db_document.id,
+            strategy=strategy.value,
+            parameters={},
+            embedding_model=embedding_model,
         )
-        result = cursor.fetchone()
+        session.add(chunking_run)
+        session.flush()
 
-        if result is None:
-            raise RuntimeError("Keine ID zurückgegeben")
-        run_id = result[0]
-
-        # schleife über alle chunks
-        for i in range(0, len(chunks), 1):
-            cursor.execute(
-                "INSERT INTO chunks (run_id, chunk_index, content, token_count) VALUES (%s, %s, %s, %s)",
-                (run_id, i, chunks[i].text, chunks[i].token_count),
+        # Insert chunks
+        for i, chunk in enumerate(chunks):
+            db_chunk = ChunkModel(
+                run_id=chunking_run.id,
+                chunk_index=i,
+                content=chunk.text,
+                token_count=chunk.token_count,
             )
+            session.add(db_chunk)
 
-    print("Insert erfolgreich!")
+        session.commit()
+        print("Insert erfolgreich!")
+
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def chunk_text(content: str, strategy: ChunkingStrategy) -> list[Chunk]:
+    """Chunk text using the specified strategy.
+
+    Args:
+        content: Text content to chunk
+        strategy: Chunking strategy to use
+
+    Returns:
+        List of Chunk objects
+
+    Raises:
+        ValueError: If content is empty or strategy is invalid
+    """
     if not content.strip():
         raise ValueError("Inhalt darf nicht leer sein.")
 
     if not isinstance(strategy, ChunkingStrategy):
-        raise ValueError("Strategie muss vorhanden  sein.")
+        raise ValueError("Strategie muss vorhanden sein.")
 
     chunks = []
-    # Chunking Strategie auswählen
+
     try:
         match strategy:
             case ChunkingStrategy.FIXED_SIZE:
-                chunker = TokenChunker(tokenizer="word", chunk_size=token_count, chunk_overlap=5)
+                chunker = TokenChunker(
+                    tokenizer="word", chunk_size=token_count, chunk_overlap=5
+                )
                 chunks = chunker.chunk(content)
                 print("Fixed size strategy")
+
             case ChunkingStrategy.SENTENCE:
-                chunker = SentenceChunker(tokenizer="word", chunk_size=token_count)
+                chunker = SentenceChunker(
+                    tokenizer="word", chunk_size=token_count
+                )
                 chunks = chunker.chunk(content)
                 print("Sentence strategy")
+
             case ChunkingStrategy.RECURSIVE:
-                chunker = RecursiveChunker(tokenizer="word", chunk_size=token_count)
+                chunker = RecursiveChunker(
+                    tokenizer="word", chunk_size=token_count
+                )
                 chunks = chunker.chunk(content)
                 print("Recursive strategy")
+
             case ChunkingStrategy.SEMANTIC:
                 settings = get_settings()
                 embedding_model = settings.embedding_model
@@ -190,12 +230,16 @@ def chunk_text(content: str, strategy: ChunkingStrategy) -> list[Chunk]:
                 )
                 chunks = chunker.chunk(content)
                 print("Semantic strategy")
+
             case ChunkingStrategy.LATE:
                 settings = get_settings()
                 embedding_model = settings.embedding_model
-                chunker = LateChunker(embedding_model=embedding_model, chunk_size=token_count)
+                chunker = LateChunker(
+                    embedding_model=embedding_model, chunk_size=token_count
+                )
                 chunks = chunker.chunk(content)
                 print("Late strategy")
+
             case _:
                 raise Exception("Bitte geben Sie eine gültige Strategie an.")
 
@@ -205,20 +249,21 @@ def chunk_text(content: str, strategy: ChunkingStrategy) -> list[Chunk]:
     return chunks
 
 
-# KI Generiert Verbindung testen
-def testConnection() -> None:
+def test_connection() -> None:
+    """Test database connection."""
     try:
-        with connect_database() as connection, connection.cursor() as cursor:
-            cursor.execute("SELECT current_database(), version()")
-            result = cursor.fetchone()
+        session = get_session()
+        result = session.execute(text("SELECT current_database(), version()")).fetchone()
 
-            if result is None:
-                raise RuntimeError("Keine Datenbankinformationen zurückgegeben")
-            print("Verbindung erfolgreich!")
-            print("Datenbank:", result[0])
-            print("PostgreSQL:", result[1])
+        if result is None:
+            raise RuntimeError("Keine Datenbankinformationen zurückgegeben")
 
-    except psycopg.Error as error:
+        print("Verbindung erfolgreich!")
+        print("Datenbank:", result[0])
+        print("PostgreSQL:", result[1])
+        session.close()
+
+    except Exception as error:
         print("Datenbankverbindung fehlgeschlagen:", error)
 
 
@@ -230,7 +275,9 @@ if __name__ == "__main__":
 
     filepath = sys.argv[1]
 
-    # testConnection()
+    # Initialize database tables
+    init_database()
+
     meta1 = Metadata(
         title=None,
         author=None,
@@ -243,8 +290,3 @@ if __name__ == "__main__":
     pdf_data = Path(filepath).read_bytes()
     doc1 = process_pdf(pdf_data)
     insert_document(filepath, doc1, ChunkingStrategy.FIXED_SIZE)
-    # insert_document("", None, None)
-    # insert_document("test3.pdf", text, ChunkingStrategy.SEMANTIC)
-    # insert_document("test3.pdf", text, ChunkingStrategy.SENTENCE)
-    # insert_document("test3.pdf", text, ChunkingStrategy.RECURSIVE)
-    # insert_document("test3.pdf", text, ChunkingStrategy.LATE)
