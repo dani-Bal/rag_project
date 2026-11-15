@@ -3,7 +3,6 @@
 # Verbindung aus Datei lesen (verschlüsselt)
 # TODO Embedding in datenbank
 # TODO Alchemy
-import sys
 from enum import StrEnum
 from pathlib import Path
 
@@ -148,10 +147,10 @@ def insert_into_database(
         run_id = result[0]
 
         # schleife über alle chunks
-        for i in range(0, len(chunks), 1):
+        for i, chunk in enumerate(chunks):
             cursor.execute(
-                "INSERT INTO chunks (run_id, chunk_index, content, token_count) VALUES (%s, %s, %s, %s)",
-                (run_id, i, chunks[i].text, chunks[i].token_count),
+                "INSERT INTO chunks (run_id, chunk_index, content, token_count, embedding) VALUES (%s, %s, %s, %s, %s)",
+                (run_id, i, chunk.text, chunk.token_count, chunk.embedding),
             )
 
     print("Insert erfolgreich!")
@@ -223,12 +222,13 @@ def testConnection() -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise ValueError(
-            "Bitte einen PDF-Dateipfad angeben. Syntax: rag_project.database.database Dateipfad."
-        )
+    # if len(sys.argv) < 2:
+    #     raise ValueError(
+    #         "Bitte einen PDF-Dateipfad angeben. Syntax: rag_project.database.database Dateipfad."
+    #     )
 
-    filepath = sys.argv[1]
+    # filepath = sys.argv[1]
+    filepath = "/Users/danielbalbach/Documents/GitHub/rag_project/lorem-ipsum.pdf"
 
     # testConnection()
     meta1 = Metadata(
