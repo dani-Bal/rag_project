@@ -106,12 +106,12 @@ services:
     env_file:
       - .env
     environment:
-      - OLLAMA_BASE_URLS=${OLLAMA_BASE_URLS:-http://host.docker.internal:7869}
+      - USE_OLLAMA_DOCKER=${USE_OLLAMA_DOCKER:-true}
+      - OLLAMA_BASE_URLS=${OLLAMA_BASE_URLS:-http://localhost:7869}
       - ENV=${WEBUI_ENV:-dev}
       - WEBUI_AUTH=${WEBUI_AUTH:-False}
       - WEBUI_NAME=${WEBUI_NAME:-valiantlynx AI}
       - WEBUI_URL=${WEBUI_URL:-http://localhost:8080}
-      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-t0p-s3cr3t}
       - NO_PROXY=host.docker.internal
     extra_hosts:
       - host.docker.internal:host-gateway
