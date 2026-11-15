@@ -126,4 +126,3 @@ networks:
 
 volumes:
   postgres_data:
-  pg_data:
