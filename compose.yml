@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-rag_password}
       POSTGRES_DB: ${DB_NAME:-rag_db}
     volumes:
-      - pg_data:/var/lib/postgresql18/data
+      - postgres_data:/var/lib/postgresql18/data
       - ./docker/db-init.sql:/docker-entrypoint-initdb.d/01-schema.sql
     ports:
       - "${DB_PORT:-5432}:5432"
