@@ -212,3 +212,10 @@ temp/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Ollama
+.dist
+/src/__pycache__
+ollama/
+*.gguf
+*.ggml
