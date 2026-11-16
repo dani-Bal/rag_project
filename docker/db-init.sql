@@ -1,5 +1,7 @@
-CREATE DATABASE rag_project;
-
+SELECT 'CREATE DATABASE rag_project'
+WHERE NOT EXISTS (
+    SELECT FROM pg_database WHERE datname = 'rag_project'
+)\gexec
 
 -- ============================================
 -- RAG PROJECT – DATENBANKSCHEMA
