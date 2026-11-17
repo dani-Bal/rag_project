@@ -3,6 +3,7 @@
 # Verbindung aus Datei lesen (verschlüsselt)
 # TODO Embedding in datenbank
 # TODO Alchemy
+import sys
 from enum import StrEnum
 from pathlib import Path
 
@@ -16,12 +17,12 @@ from chonkie import (
     TokenChunker,
 )
 from pgvector.psycopg import register_vector
+from sentence_transformers import SentenceTransformer
 
 from rag_project.config import get_settings
-
-from .document import Document
-from .metadata import Metadata
-from .process_pdf import process_pdf
+from rag_project.database.document import Document
+from rag_project.database.metadata import Metadata
+from rag_project.database.process_pdf import process_pdf
 
 
 class ChunkingStrategy(StrEnum):
@@ -201,6 +202,22 @@ def chunk_text(content: str, strategy: ChunkingStrategy) -> list[Chunk]:
     except Exception:
         raise
 
+    # Fehlende Embeddings erzeugen
+    ###Verloren gegangen beim Merging. Mit KI erzeugt.
+    missing_chunks = [chunk for chunk in chunks if chunk.embedding is None]
+
+    if missing_chunks:
+        settings = get_settings()
+        model = SentenceTransformer(settings.embedding_model)
+
+        embeddings = model.encode(
+            [chunk.text for chunk in missing_chunks],
+            convert_to_numpy=True,
+        )
+
+        for chunk, embedding in zip(missing_chunks, embeddings, strict=True):
+            chunk.embedding = embedding
+    ###Ende KI-Block
     return chunks
 
 
@@ -222,13 +239,12 @@ def testConnection() -> None:
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) < 2:
-    #     raise ValueError(
-    #         "Bitte einen PDF-Dateipfad angeben. Syntax: rag_project.database.database Dateipfad."
-    #     )
+    if len(sys.argv) < 2:
+        raise ValueError(
+            "Bitte einen PDF-Dateipfad angeben. Syntax: rag_project.database.database Dateipfad."
+        )
 
-    # filepath = sys.argv[1]
-    filepath = "/Users/danielbalbach/Documents/GitHub/rag_project/lorem-ipsum.pdf"
+    filepath = sys.argv[1]
 
     # testConnection()
     meta1 = Metadata(
