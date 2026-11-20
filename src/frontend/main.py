@@ -1,44 +1,80 @@
-import altair as alt
-import numpy as np
-import pandas as pd
+import os
+import subprocess
+from typing import TypedDict, cast
+
 import streamlit as st
 
-"""
-# Welcome to Streamlit!
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+class ChatMessage(TypedDict):
+    role: str
+    content: str
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+st.set_page_config(page_title="AI chatbot")
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+st.title("Examplary RAG system Frontend")
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+# sidebar model selector
+model = st.sidebar.selectbox("Choose Local Model", ["llama3.1", "qwen3.5", "gemma3:1b"])
 
-df = pd.DataFrame(
-    {
-        "x": x,
-        "y": y,
-        "idx": indices,
-        "rand": np.random.randn(num_points),
-    }
+# Upload functionality
+# Define Upload-Ordner
+upload_folder = "UploadedFiles"
+
+# Create a button for upload
+st.header("Upload of files")
+uploaded_file = st.file_uploader(
+    "Choose a file to be uploaded (allowed: docx, md, pdf, txt)", type=["txt", "pdf", "docx", "md"]
 )
 
-st.altair_chart(
-    alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    )
+# Actually upload the chosen file
+if uploaded_file is not None:
+    st.write("Chosen file:", uploaded_file.name)
+    uploadButton: bool = st.button("Upload file")
+    if uploadButton:
+        # Check if file was uploaded successfully
+        if uploaded_file is not None:
+            filename = uploaded_file.name
+            filepath = os.path.join(upload_folder, filename)
+            with open(filepath, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            st.success("The file was uploaded successfully!")
+        else:
+            st.error("Error while uploading the file")
+
+
+# Start of Chat
+st.header("AI Chatbot with local LLMs via Ollama")
+
+# Chat memory
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+messages: list[ChatMessage] = cast(
+    list[ChatMessage],
+    st.session_state["messages"],
 )
+
+# Chat memory
+for msg in messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# user input
+user_input = st.chat_input("Ask something...")
+
+if user_input:
+    messages.append({"role": "user", "content": user_input})
+
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    # Call Ollama
+    result = subprocess.run(["ollama", "run", model, user_input], capture_output=True, text=True)
+
+    reply = result.stdout.strip()
+
+    messages.append({"role": "assistant", "content": reply})
+
+    with st.chat_message("assistant"):
+        st.markdown(reply)
