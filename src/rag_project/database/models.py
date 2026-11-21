@@ -9,6 +9,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql.sqltypes import DateTime
 from sqlalchemy.types import LargeBinary
 
+from rag_project.config import get_settings
+
 
 class Base(DeclarativeBase):
     pass
@@ -17,7 +19,7 @@ class Base(DeclarativeBase):
 class Chunks(Base):
     """Model a chunk of document stored in the database."""
 
-    VECTOR_DIMENSIONS = 384
+    VECTOR_DIMENSIONS = get_settings().vector_length
     __tablename__ = "chunks"
 
     __table_args__ = (

@@ -1,5 +1,8 @@
 # Autor: Carsten Ostlender, 2026
 # TODO: Unit Tests
+# Chunking in eigene Datei auslagern, um die Logik zu trennen und die Lesbarkeit zu verbessern.
+# DB und Chunking trennen
+import logging
 import sys
 from enum import StrEnum
 from pathlib import Path
@@ -32,6 +35,7 @@ from rag_project.database.models import (
 )
 from rag_project.database.process_pdf import process_pdf
 
+logger = logging.getLogger(__name__)
 # In Connect Funktion?
 settings = get_settings()
 
@@ -60,6 +64,7 @@ threshold_length = 0.65
 
 
 def insert_document_into_database(
+    session: Session,
     document_name: str,
     document: Document,
     strategy: ChunkingStrategy,
@@ -78,51 +83,51 @@ def insert_document_into_database(
     if not isinstance(strategy, ChunkingStrategy):
         raise ValueError("Strategie muss vorhanden  sein.")
 
-    with Session(engine) as session:
-        # Save Document
-        db_document = Documents(
-            filename=document_name,
-            content=document.content,
-            original_file=document.original_file,
-            metadata_record=MetaData(
-                title=document.metadata.title,
-                author=document.metadata.author,
-                subject=document.metadata.subject,
-                keywords=document.metadata.keywords,
-                pdf_created_at=document.metadata.pdf_created_at,
-                page_count=document.metadata.page_count,
-                file_size_bytes=document.metadata.file_size_bytes,
-            ),
+    # Save Document
+    db_document = Documents(
+        filename=document_name,
+        content=document.content,
+        original_file=document.original_file,
+        metadata_record=MetaData(
+            title=document.metadata.title,
+            author=document.metadata.author,
+            subject=document.metadata.subject,
+            keywords=document.metadata.keywords,
+            pdf_created_at=document.metadata.pdf_created_at,
+            page_count=document.metadata.page_count,
+            file_size_bytes=document.metadata.file_size_bytes,
+        ),
+    )
+    session.add(db_document)
+    session.flush()
+
+    # Save ChunkingRun
+    chunking_run = ChunkingRun(
+        document_id=db_document.id,
+        strategy=strategy.value,
+        parameters={},
+        embedding_model=settings.embedding_model,
+    )
+    session.add(chunking_run)
+    session.flush()
+
+    # Save Chunks
+    for i, chunk in enumerate(chunks):
+        db_chunk = ChunkModel(
+            run_id=chunking_run.id,
+            chunk_index=i,
+            content=chunk.text,
+            token_count=chunk.token_count,
+            embedding=list(chunk.embedding) if chunk.embedding is not None else None,
         )
-        session.add(db_document)
-        session.flush()
+        session.add(db_chunk)
 
-        # Save ChunkingRun
-        chunking_run = ChunkingRun(
-            document_id=db_document.id,
-            strategy=strategy.value,
-            parameters={},
-            embedding_model=settings.embedding_model,
-        )
-        session.add(chunking_run)
-        session.flush()
-
-        # Save Chunks
-        for i, chunk in enumerate(chunks):
-            db_chunk = ChunkModel(
-                run_id=chunking_run.id,
-                chunk_index=i,
-                content=chunk.text,
-                token_count=chunk.token_count,
-                embedding=list(chunk.embedding) if chunk.embedding is not None else None,
-            )
-            session.add(db_chunk)
-
-        session.commit()
-    print("Insert successful!")
+    logger.debug("Insert successful!")
 
 
-def insert_document(document_name: str, document: Document, strategy: ChunkingStrategy) -> None:
+def insert_document(
+    session: Session, document_name: str, document: Document, strategy: ChunkingStrategy
+) -> None:
 
     # Unsinnige und leere Eingaben abfangen
     if not document_name.strip():
@@ -143,7 +148,7 @@ def insert_document(document_name: str, document: Document, strategy: ChunkingSt
     # Chunking Strategie auswählen
     chunks = chunk_text(content, strategy)
     # insert_into_database(document_name, document, strategy, chunks, embedding_model)
-    insert_document_into_database(document_name, document, strategy, chunks)
+    insert_document_into_database(session, document_name, document, strategy, chunks)
 
 
 def chunk_text(content: str, strategy: ChunkingStrategy) -> list[Chunk]:
@@ -242,9 +247,11 @@ if __name__ == "__main__":
         page_count=None,
         file_size_bytes=None,
     )
-    pdf_data = Path(filepath).read_bytes()
-    doc1 = process_pdf(pdf_data)
-    insert_document(filepath, doc1, ChunkingStrategy.FIXED_SIZE)
+
+    with Session(engine) as session, session.begin():
+        pdf_data = Path(filepath).read_bytes()
+        doc1 = process_pdf(pdf_data)
+        insert_document(session, filepath, doc1, ChunkingStrategy.FIXED_SIZE)
     # insert_document("", None, None)
     # insert_document("test3.pdf", text, ChunkingStrategy.SEMANTIC)
     # insert_document("test3.pdf", text, ChunkingStrategy.SENTENCE)
