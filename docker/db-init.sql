@@ -8,13 +8,28 @@ WHERE NOT EXISTS (
 -- PostgreSQL + pgvector
 -- ============================================
 
--- 1. Erweiterungen
+-- 1. Extensions
 CREATE EXTENSION IF NOT EXISTS vector;
 
+-- ============================================
+-- 2. Documents
+-- ============================================
 
--- 2. PDF-Metadaten
+CREATE TABLE IF NOT EXISTS documents (
+    id BIGSERIAL PRIMARY KEY,
+    filename TEXT NOT NULL,
+    content TEXT,
+    original_file BYTEA,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+--- ===========================================
+-- 3. PDF Metadata
+-- ============================================
+
 CREATE TABLE IF NOT EXISTS pdf_metadata (
     id BIGSERIAL PRIMARY KEY,
+    document_id BIGINT NOT NULL UNIQUE REFERENCES documents(id) ON DELETE CASCADE,
     title TEXT,
     author TEXT,
     subject TEXT,
@@ -25,21 +40,10 @@ CREATE TABLE IF NOT EXISTS pdf_metadata (
 );
 
 
--- 3. Dokumente
-CREATE TABLE IF NOT EXISTS documents (
-    id BIGSERIAL PRIMARY KEY,
-    filename TEXT NOT NULL,
-    content TEXT,
-    original_file BYTEA,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+-- ============================================
+-- 4. Chunking Runs
+-- ============================================
 
-    metadata_id BIGINT UNIQUE
-        REFERENCES pdf_metadata(id)
-        ON DELETE SET NULL
-);
-
-
--- 4. Chunking-Durchläufe
 CREATE TABLE IF NOT EXISTS chunking_runs (
     id BIGSERIAL PRIMARY KEY,
 
@@ -48,13 +52,20 @@ CREATE TABLE IF NOT EXISTS chunking_runs (
         ON DELETE CASCADE,
 
     strategy VARCHAR(50) NOT NULL,
-    parameters JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+    parameters JSONB NOT NULL
+        DEFAULT '{}'::jsonb,
+
     embedding_model TEXT,
+
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 
--- 5. Chunks mit Embeddings
+-- ============================================
+-- 5. Chunks
+-- ============================================
+
 CREATE TABLE IF NOT EXISTS chunks (
     id BIGSERIAL PRIMARY KEY,
 
@@ -65,13 +76,22 @@ CREATE TABLE IF NOT EXISTS chunks (
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
     token_count INTEGER,
+
+    -- PDF page range (inclusive, 1-based)
+    page_start INTEGER,
+    page_end INTEGER,
+
     embedding VECTOR(384),
 
-    UNIQUE (run_id, chunk_index)
+    CONSTRAINT unique_run_chunk_index
+        UNIQUE (run_id, chunk_index)
 );
 
 
--- 6. Indizes
+-- ============================================
+-- 6. Indexes
+-- ============================================
+
 CREATE INDEX IF NOT EXISTS idx_chunking_runs_document_id
     ON chunking_runs(document_id);
 

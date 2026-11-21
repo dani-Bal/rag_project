@@ -31,7 +31,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-rag_user}:${DB_PASSWORD:-rag_password}@postgres:${DB_PORT:-5432}/${DB_NAME:-rag_db}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-rag_password}@postgres:${DB_PORT:-5432}/${DB_NAME:-rag_db}
       - PYTHONPATH=${PYTHONPATH:-/app}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
       - LLM_MODEL=${LLM_MODEL:-gpt-3.5-turbo}
