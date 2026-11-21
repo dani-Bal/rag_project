@@ -7,7 +7,6 @@ import pytest
 from pydantic_ai import Agent
 from sqlalchemy import create_engine
 
-import rag_project.main as rag_project_main
 from rag_project.config import Settings
 
 
@@ -53,23 +52,25 @@ def test_settings_read_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.debug is True
 
 
-@patch.object(rag_project_main, "create_engine")
-@patch.object(rag_project_main, "build_agent")
 def test_main_logs_startup(
-    mocked_agent_factory: MagicMock,
-    mocked_db_engine_factory: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """The application entry point logs its startup configuration."""
-    caplog.set_level(logging.INFO, logger="rag_project.main")
-    mocked_db_engine_factory.return_value = create_engine("sqlite:///:memory:")
-    mocked_agent = MagicMock(spec=Agent)
-    mocked_agent_factory.return_value = mocked_agent
-    mocked_agent.run_sync.return_value = "Mocked answer by mocked agent"
+    import rag_project.main as rag_project_main
 
-    with patch("builtins.input") as mocked_input:
-        mocked_input.side_effect = KeyboardInterrupt
-        with pytest.raises(KeyboardInterrupt):
-            rag_project_main.main()
+    with (
+        patch.object(rag_project_main, "create_engine") as mocked_db_engine_factory,
+        patch.object(rag_project_main, "build_agent") as mocked_agent_factory,
+    ):
+        caplog.set_level(logging.INFO, logger="rag_project.main")
+        mocked_db_engine_factory.return_value = create_engine("sqlite:///:memory:")
+        mocked_agent = MagicMock(spec=Agent)
+        mocked_agent_factory.return_value = mocked_agent
+        mocked_agent.run_sync.return_value = "Mocked answer by mocked agent"
 
-    assert "Starting rag-project (debug=False)" in caplog.text
+        with patch("builtins.input") as mocked_input:
+            mocked_input.side_effect = KeyboardInterrupt
+            with pytest.raises(KeyboardInterrupt):
+                rag_project_main.main()
+
+        assert "Starting rag-project (debug=False)" in caplog.text
