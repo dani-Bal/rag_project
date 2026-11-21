@@ -78,7 +78,7 @@ Ensure Docker Compose is available (v2+). Verify with `docker compose version`.
 
 ```bash
 # Stop services and delete containers
-docker compose down
+docker compose down -v --rmi all --remove-orphans
 
 # Removes everything that's not running atm! Stopped containers, unused networks, dangling images, unused builds
 docker system prune
