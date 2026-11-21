@@ -30,7 +30,6 @@ class Settings(BaseSettings):
     )
     llm_provider_url: str
     llm_model_name: str
-    database_url: str = Field(description="The url to connect to the database")
     embedding_model_name: str = Field(description="Name of the model used for embedding.")
 
 
