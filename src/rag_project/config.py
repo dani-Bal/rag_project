@@ -1,5 +1,7 @@
 """Application configuration loaded from environment variables."""
 
+from pathlib import Path
+
 from pydantic import Field, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,6 +23,8 @@ class Settings(BaseSettings):
         default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
         validation_alias="EMBEDDING_MODEL",
     )
+    upload_dir: Path = Path("data/local/uploads")
+    max_file_size: int = 20 * 1024 * 1024  # 20 MB
 
     model_config = SettingsConfigDict(
         env_prefix="RAG_PROJECT_",
