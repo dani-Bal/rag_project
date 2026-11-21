@@ -1,6 +1,11 @@
 """Tests for application configuration."""
 
+import logging
+from unittest.mock import MagicMock, patch
+
 import pytest
+from pydantic_ai import Agent
+from sqlalchemy import create_engine
 
 from rag_project.config import Settings
 
