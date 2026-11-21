@@ -43,7 +43,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./src/backend:/app/backend
+      - ./src/rag_project:/app/rag_project
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,7 +65,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./src/frontend:/app/frontend
+      - ./src/rag_project:/app/rag_project
     depends_on:
       backend:
         condition: service_started
