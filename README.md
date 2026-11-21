@@ -83,12 +83,12 @@ docker compose down
 # Removes everything that's not running atm! Stopped containers, unused networks, dangling images, unused builds
 docker system prune
 
-# Restart docker desktop, Can also be done via UI, if this command doesn't work 
+# Restart docker desktop, Can also be done via UI, if this command doesn't work
 docker desktop restart
 
 ```
 
- 
+
 ## Frontend URL
 http://localhost:8501
 
