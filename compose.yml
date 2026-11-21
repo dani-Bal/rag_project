@@ -6,11 +6,11 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_USER: ${DB_USER:-rag_user}
+      POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-rag_password}
-      POSTGRES_DB: ${DB_NAME:-rag_db}
+      POSTGRES_DB: ${DB_NAME:-rag_project}
     volumes:
-      - pg_data:/var/lib/postgresql18/data
+      - postgres_data:/var/lib/postgresql18/data
       - ./docker/db-init.sql:/docker-entrypoint-initdb.d/01-schema.sql
     ports:
       - "${DB_PORT:-5432}:5432"
@@ -31,7 +31,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-rag_user}:${DB_PASSWORD:-rag_password}@postgres:${DB_PORT:-5432}/${DB_NAME:-rag_db}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-rag_password}@postgres:${DB_PORT:-5432}/${DB_NAME:-rag_db}
       - PYTHONPATH=${PYTHONPATH:-/app}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
       - LLM_MODEL=${LLM_MODEL:-gpt-3.5-turbo}
@@ -43,7 +43,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./src/backend:/app/backend
+      - ./src/rag_project:/app/rag_project
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,7 +65,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./src/frontend:/app/frontend
+      - ./src/rag_project:/app/rag_project
     depends_on:
       backend:
         condition: service_started
@@ -75,7 +75,7 @@ services:
 
   # Ollama
   ollama:
-    image: docker.io/ollama/ollama:latest
+    image: docker.io/ollama/ollama:0.40.16
     ports:
       - ${OLLAMA_PORT:-7869}:11434
     volumes:
@@ -107,7 +107,7 @@ services:
       - .env
     environment:
       - USE_OLLAMA_DOCKER=${USE_OLLAMA_DOCKER:-true}
-      - OLLAMA_BASE_URLS=${OLLAMA_BASE_URLS:-http://localhost:7869}
+      - OLLAMA_BASE_URLS=${OLLAMA_BASE_URLS:-http://host.docker.internal:7869}
       - ENV=${WEBUI_ENV:-dev}
       - WEBUI_AUTH=${WEBUI_AUTH:-False}
       - WEBUI_NAME=${WEBUI_NAME:-valiantlynx AI}
