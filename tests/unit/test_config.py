@@ -52,25 +52,25 @@ def test_settings_read_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.debug is True
 
 
-@patch("rag_project.main.create_engine")
-@patch("rag_project.main.build_agent")
 def test_main_logs_startup(
-    mocked_agent_factory: MagicMock,
-    mocked_db_engine_factory: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """The application entry point logs its startup configuration."""
-    caplog.set_level(logging.INFO, logger="rag_project.main")
-    from rag_project.main import main
+    import rag_project.main as rag_project_main
 
-    mocked_db_engine_factory.return_value = create_engine("sqlite:///:memory:")
-    mocked_agent = MagicMock(spec=Agent)
-    mocked_agent_factory.return_value = mocked_agent
-    mocked_agent.run_sync.return_value = "Mocked answer by mocked agent"
+    with (
+        patch.object(rag_project_main, "create_engine") as mocked_db_engine_factory,
+        patch.object(rag_project_main, "build_agent") as mocked_agent_factory,
+    ):
+        caplog.set_level(logging.INFO, logger="rag_project.main")
+        mocked_db_engine_factory.return_value = create_engine("sqlite:///:memory:")
+        mocked_agent = MagicMock(spec=Agent)
+        mocked_agent_factory.return_value = mocked_agent
+        mocked_agent.run_sync.return_value = "Mocked answer by mocked agent"
 
-    with patch("builtins.input") as mocked_input:
-        mocked_input.side_effect = KeyboardInterrupt
-        with pytest.raises(KeyboardInterrupt):
-            main()
+        with patch("builtins.input") as mocked_input:
+            mocked_input.side_effect = KeyboardInterrupt
+            with pytest.raises(KeyboardInterrupt):
+                rag_project_main.main()
 
-    assert "Starting rag-project (debug=False)" in caplog.text
+        assert "Starting rag-project (debug=False)" in caplog.text

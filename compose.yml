@@ -82,7 +82,6 @@ services:
       - ./src:/code
       - ./ollama/ollama:/root/.ollama
     container_name: ollama
-    pull_policy: always
     tty: true
     restart: unless-stopped
     env_file:
