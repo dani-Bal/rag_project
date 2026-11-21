@@ -3,7 +3,7 @@
 import logging
 
 from openai import OpenAI
-from sqlalchemy import create_engine
+from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import sessionmaker
 
 from rag_project.agent.agent import build_agent
@@ -21,8 +21,15 @@ def main() -> None:
     tools = [retrieve_most_relevant_documents]
     agent = build_agent(tools=tools)
     logger.info("Starting %s (debug=%s)", settings.app_name, settings.debug)
-
-    engine = create_engine(settings.database_url)
+    database_url = URL.create(
+        drivername="postgresql+psycopg",
+        username=settings.db_user,
+        password=settings.db_password,
+        host=settings.db_host,
+        port=settings.db_port,
+        database=settings.db_name,
+    )
+    engine = create_engine(database_url)
     Base.metadata.create_all(engine)
 
     Session = sessionmaker(engine)
