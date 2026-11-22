@@ -42,10 +42,9 @@ def main() -> None:
                     deps=AgentContext(
                         session=session,
                         embedding_client=OpenAI(
-                            base_url=settings.llm_provider_url,
-                            api_key="ollama",
+                            base_url=settings.llm_provider_url, api_key=settings.llm_api_key
                         ),
-                        embedding_model_name=settings.embedding_model_name,
+                        embedding_model_name=settings.embedding_model,
                     ),
                 )
                 print("Answer:", result)

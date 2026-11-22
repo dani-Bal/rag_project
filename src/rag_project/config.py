@@ -28,9 +28,19 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
-    llm_provider_url: str
-    llm_model_name: str
-    embedding_model_name: str = Field(description="Name of the model used for embedding.")
+
+    llm_provider_url: str = Field(
+        default="https://chat-ai.academiccloud.de/v1/",
+        validation_alias="LLM_PROVIDER_URL",
+    )
+
+    llm_api_key: str = Field(
+        default="",
+    )
+
+    llm_model_name: str = Field(
+        default="gpt-3.5-turbo",
+    )
 
 
 def get_settings() -> Settings:
