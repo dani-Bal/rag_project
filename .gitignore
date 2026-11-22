@@ -219,3 +219,5 @@ temp/
 ollama/
 *.gguf
 *.ggml
+
+seed_documents/**
