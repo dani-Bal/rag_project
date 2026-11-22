@@ -16,7 +16,7 @@ class Base(DeclarativeBase):
     pass
 
 
-class Chunks(Base):
+class Chunk(Base):
     """Model a chunk of document stored in the database."""
 
     VECTOR_DIMENSIONS = get_settings().vector_length

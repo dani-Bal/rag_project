@@ -25,12 +25,12 @@ from sqlalchemy.orm import Session
 from rag_project.config import get_settings
 from rag_project.database.metadata import Metadata
 from rag_project.database.models import (
+    Chunk as ChunkModel,
+)
+from rag_project.database.models import (
     ChunkingRun,
     Document,
     MetaData,
-)
-from rag_project.database.models import (
-    Chunks as ChunkModel,
 )
 from rag_project.database.process_pdf import process_pdf
 
