@@ -73,6 +73,22 @@ docker compose logs -f
 
 Ensure Docker Compose is available (v2+). Verify with `docker compose version`.
 
+### 3 Clean-up commands if setup is buggy
+:warning: This will remove all of your setup including data stored in the databases! Only what is in stored in your file system or is in git is save.
+
+```bash
+# Stop services and delete containers
+docker compose down -v --rmi all --remove-orphans
+
+# Removes everything that's not running atm! Stopped containers, unused networks, dangling images, unused builds
+docker system prune
+
+# Restart docker desktop, Can also be done via UI, if this command doesn't work
+docker desktop restart
+
+```
+
+
 ## Frontend URL
 http://localhost:8501
 

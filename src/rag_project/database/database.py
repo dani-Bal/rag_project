@@ -1,12 +1,12 @@
 # Autor: Carsten Ostlender, 2026
 # TODO: Unit Tests
-# Verbindung aus Datei lesen (verschlüsselt)
-# TODO Embedding in datenbank
-# TODO Alchemy
+# Chunking in eigene Datei auslagern, um die Logik zu trennen und die Lesbarkeit zu verbessern.
+# DB und Chunking trennen
+import logging
+import sys
 from enum import StrEnum
 from pathlib import Path
 
-import psycopg
 from chonkie import (
     Chunk,
     LateChunker,
@@ -15,13 +15,40 @@ from chonkie import (
     SentenceChunker,
     TokenChunker,
 )
-from pgvector.psycopg import register_vector
+from sentence_transformers import SentenceTransformer
+from sqlalchemy import create_engine
+from sqlalchemy import text as sql_text
+from sqlalchemy.engine import URL
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from rag_project.config import get_settings
+from rag_project.database.document import Document
+from rag_project.database.metadata import Metadata
+from rag_project.database.models import (
+    ChunkingRun,
+    Documents,
+    MetaData,
+)
+from rag_project.database.models import (
+    Chunks as ChunkModel,
+)
+from rag_project.database.process_pdf import process_pdf
 
-from .document import Document
-from .metadata import Metadata
-from .process_pdf import process_pdf
+logger = logging.getLogger(__name__)
+# In Connect Funktion?
+settings = get_settings()
+
+url = URL.create(
+    "postgresql+psycopg",
+    username=settings.db_user,
+    password=settings.db_password,
+    host=settings.db_host,
+    port=int(settings.db_port),
+    database=settings.db_name,
+)
+
+engine = create_engine(url, pool_pre_ping=True)
 
 
 class ChunkingStrategy(StrEnum):
@@ -35,34 +62,72 @@ class ChunkingStrategy(StrEnum):
 token_count = 35
 threshold_length = 0.65
 
-text = (
-    "Python ist eine Programmiersprache. Sie wird häufig für KI verwendet. "
-    "Machine Learning erkennt Muster in Daten. Neuronale Netze lernen aus Beispielen. "
-    "PostgreSQL ist eine relationale Datenbank. Mit pgvector kann man Embeddings speichern. "
-    "SQL ermöglicht das Abfragen von Daten. Datenbanken sind für RAG-Systeme wichtig. "
-    "Fußball wird von zwei Mannschaften gespielt. Bayern München spielt in der Bundesliga. "
-    "Ein Fußballspiel dauert normalerweise 90 Minuten. "
-    "Astronomie beschäftigt sich mit Sternen und Planeten. "
-    "Die Erde umkreist die Sonne. Der Mond umkreist die Erde."
-)
 
+def insert_document_into_database(
+    session: Session,
+    document_name: str,
+    document: Document,
+    strategy: ChunkingStrategy,
+    chunks: list[Chunk],
+) -> None:
+    # Check nonsensical and empty inputs
+    if not document_name.strip():
+        raise ValueError("Dokumentname darf nicht leer sein.")
 
-def connect_database() -> psycopg.Connection:
-    settings = get_settings()
+    if document is None:
+        raise ValueError("Dokument muss verhanden sein.")
 
-    connection = psycopg.connect(
-        host=settings.db_host,
-        port=settings.db_port,
-        dbname=settings.db_name,
-        user=settings.db_user,
-        password=settings.db_password,
+    if document.content is None or document.metadata is None:
+        raise ValueError("Kein Dokumentinhalt oder Metadaten vorhanden.")
+
+    if not isinstance(strategy, ChunkingStrategy):
+        raise ValueError("Strategie muss vorhanden  sein.")
+
+    # Save Document
+    db_document = Documents(
+        filename=document_name,
+        content=document.content,
+        original_file=document.original_file,
+        metadata_record=MetaData(
+            title=document.metadata.title,
+            author=document.metadata.author,
+            subject=document.metadata.subject,
+            keywords=document.metadata.keywords,
+            pdf_created_at=document.metadata.pdf_created_at,
+            page_count=document.metadata.page_count,
+            file_size_bytes=document.metadata.file_size_bytes,
+        ),
     )
-    # KI-Vorschlag
-    register_vector(connection)
-    return connection
+    session.add(db_document)
+    session.flush()
+
+    # Save ChunkingRun
+    chunking_run = ChunkingRun(
+        document_id=db_document.id,
+        strategy=strategy.value,
+        parameters={},
+        embedding_model=settings.embedding_model,
+    )
+    session.add(chunking_run)
+    session.flush()
+
+    # Save Chunks
+    for i, chunk in enumerate(chunks):
+        db_chunk = ChunkModel(
+            run_id=chunking_run.id,
+            chunk_index=i,
+            content=chunk.text,
+            token_count=chunk.token_count,
+            embedding=list(chunk.embedding) if chunk.embedding is not None else None,
+        )
+        session.add(db_chunk)
+
+    logger.debug("Insert successful!")
 
 
-def insert_document(document_name: str, document: Document, strategy: ChunkingStrategy) -> None:
+def insert_document(
+    session: Session, document_name: str, document: Document, strategy: ChunkingStrategy
+) -> None:
 
     # Unsinnige und leere Eingaben abfangen
     if not document_name.strip():
@@ -77,83 +142,13 @@ def insert_document(document_name: str, document: Document, strategy: ChunkingSt
     if not isinstance(strategy, ChunkingStrategy):
         raise ValueError("Strategie muss vorhanden  sein.")
 
-    settings = get_settings()
-    embedding_model = settings.embedding_model
-
     # creating a cursor object
     content = document.content
 
     # Chunking Strategie auswählen
     chunks = chunk_text(content, strategy)
-    insert_into_database(document_name, document, strategy, chunks, embedding_model)
-
-
-def insert_into_database(
-    document_name: str,
-    document: Document,
-    strategy: ChunkingStrategy,
-    chunks: list[Chunk],
-    embedding_model: str,
-) -> None:
-
-    with connect_database() as connection:
-        cursor = connection.cursor()
-        # Daten in die Datenbank eintragen
-        # KI-generiertes SQL statement
-        cursor.execute(
-            """
-                    INSERT INTO pdf_metadata (
-                    title, author, subject, keywords,
-                    pdf_created_at, page_count, file_size_bytes
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id;
-                    """,
-            (
-                document.metadata.title,
-                document.metadata.author,
-                document.metadata.subject,
-                document.metadata.keywords,
-                document.metadata.pdf_created_at,
-                document.metadata.page_count,
-                document.metadata.file_size_bytes,
-            ),
-        )
-
-        result = cursor.fetchone()
-
-        if result is None:
-            raise RuntimeError("Keine ID zurückgegeben")
-
-        metadata_id = result[0]
-        cursor.execute(
-            "INSERT INTO documents (filename, content,metadata_id, original_pdf) VALUES (%s, %s, %s, %s) RETURNING id;",
-            (document_name, document.content, metadata_id, document.original_file),
-        )
-        result = cursor.fetchone()
-
-        if result is None:
-            raise RuntimeError("Keine ID zurückgegeben")
-        document_id = result[0]
-
-        cursor.execute(
-            "INSERT INTO chunking_runs (document_id, strategy, parameters, embedding_model) VALUES (%s, %s, %s, %s) RETURNING id;",
-            (document_id, strategy.value, "{}", embedding_model),
-        )
-        result = cursor.fetchone()
-
-        if result is None:
-            raise RuntimeError("Keine ID zurückgegeben")
-        run_id = result[0]
-
-        # schleife über alle chunks
-        for i, chunk in enumerate(chunks):
-            cursor.execute(
-                "INSERT INTO chunks (run_id, chunk_index, content, token_count, embedding) VALUES (%s, %s, %s, %s, %s)",
-                (run_id, i, chunk.text, chunk.token_count, chunk.embedding),
-            )
-
-    print("Insert erfolgreich!")
+    # insert_into_database(document_name, document, strategy, chunks, embedding_model)
+    insert_document_into_database(session, document_name, document, strategy, chunks)
 
 
 def chunk_text(content: str, strategy: ChunkingStrategy) -> list[Chunk]:
@@ -201,36 +196,48 @@ def chunk_text(content: str, strategy: ChunkingStrategy) -> list[Chunk]:
     except Exception:
         raise
 
+    # Fehlende Embeddings erzeugen
+    ###Verloren gegangen beim Merging. Mit KI erzeugt.
+    missing_chunks = [chunk for chunk in chunks if chunk.embedding is None]
+
+    if missing_chunks:
+        settings = get_settings()
+        model = SentenceTransformer(settings.embedding_model)
+
+        embeddings = model.encode(
+            [chunk.text for chunk in missing_chunks],
+            convert_to_numpy=True,
+        )
+
+        for chunk, embedding in zip(missing_chunks, embeddings, strict=True):
+            chunk.embedding = embedding
+    ###Ende KI-Block
     return chunks
 
 
 # KI Generiert Verbindung testen
-def testConnection() -> None:
+def test_connection() -> None:
     try:
-        with connect_database() as connection, connection.cursor() as cursor:
-            cursor.execute("SELECT current_database(), version()")
-            result = cursor.fetchone()
+        with engine.connect() as connection:
+            result = connection.execute(sql_text("SELECT current_database(), version()")).one()
 
-            if result is None:
-                raise RuntimeError("Keine Datenbankinformationen zurückgegeben")
             print("Verbindung erfolgreich!")
             print("Datenbank:", result[0])
             print("PostgreSQL:", result[1])
 
-    except psycopg.Error as error:
+    except SQLAlchemyError as error:
         print("Datenbankverbindung fehlgeschlagen:", error)
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) < 2:
-    #     raise ValueError(
-    #         "Bitte einen PDF-Dateipfad angeben. Syntax: rag_project.database.database Dateipfad."
-    #     )
+    if len(sys.argv) < 2:
+        raise ValueError(
+            "Bitte einen PDF-Dateipfad angeben. Syntax: rag_project.database.database Dateipfad."
+        )
 
-    # filepath = sys.argv[1]
-    filepath = "/Users/danielbalbach/Documents/GitHub/rag_project/lorem-ipsum.pdf"
+    filepath = sys.argv[1]
 
-    # testConnection()
+    # test_connection()
     meta1 = Metadata(
         title=None,
         author=None,
@@ -240,9 +247,11 @@ if __name__ == "__main__":
         page_count=None,
         file_size_bytes=None,
     )
-    pdf_data = Path(filepath).read_bytes()
-    doc1 = process_pdf(pdf_data)
-    insert_document(filepath, doc1, ChunkingStrategy.FIXED_SIZE)
+
+    with Session(engine) as session, session.begin():
+        pdf_data = Path(filepath).read_bytes()
+        doc1 = process_pdf(pdf_data)
+        insert_document(session, filepath, doc1, ChunkingStrategy.FIXED_SIZE)
     # insert_document("", None, None)
     # insert_document("test3.pdf", text, ChunkingStrategy.SEMANTIC)
     # insert_document("test3.pdf", text, ChunkingStrategy.SENTENCE)
