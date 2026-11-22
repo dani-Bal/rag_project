@@ -23,11 +23,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from rag_project.config import get_settings
-from rag_project.database.document import Document
 from rag_project.database.metadata import Metadata
 from rag_project.database.models import (
     ChunkingRun,
-    Documents,
+    Document,
     MetaData,
 )
 from rag_project.database.models import (
@@ -84,7 +83,7 @@ def insert_document_into_database(
         raise ValueError("Strategie muss vorhanden  sein.")
 
     # Save Document
-    db_document = Documents(
+    db_document = Document(
         filename=document_name,
         content=document.content,
         original_file=document.original_file,

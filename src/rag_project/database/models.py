@@ -65,7 +65,7 @@ class ChunkingRun(Base):
     )
 
 
-class Documents(Base):
+class Document(Base):
     """Model a document stored in the database."""
 
     __tablename__ = "documents"
