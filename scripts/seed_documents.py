@@ -12,8 +12,8 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from rag_project.config import get_settings
-from rag_project.database.database import ChunkingStrategy, chunk_text
-from rag_project.database.models import Base, DocumentChunk
+from rag_project.database.database import ChunkingStrategy, chunk_text, get_database_url_from_config
+from rag_project.database.models import Base, Document
 from rag_project.database.process_pdf import process_pdf
 
 
@@ -40,8 +40,9 @@ def seed_documents(pdf_path: Path) -> int:
         Number of inserted chunks.
     """
     settings = get_settings()
-    ensure_database(settings.database_url)
-    engine = create_engine(settings.database_url)
+    database_url = get_database_url_from_config()
+    ensure_database(str(database_url))
+    engine = create_engine(database_url)
 
     # The extension must exist before SQLAlchemy creates the VECTOR column.
     with engine.begin() as connection:

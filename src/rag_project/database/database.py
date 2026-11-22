@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 # In Connect Funktion?
 settings = get_settings()
 
+# TODO remove
 url = URL.create(
     "postgresql+psycopg",
     username=settings.db_user,
@@ -60,6 +61,17 @@ class ChunkingStrategy(StrEnum):
 
 token_count = 35
 threshold_length = 0.65
+
+
+def get_database_url_from_config() -> URL:
+    return URL.create(
+        "postgresql+psycopg",
+        username=settings.db_user,
+        password=settings.db_password,
+        host=settings.db_host,
+        port=int(settings.db_port),
+        database=settings.db_name,
+    )
 
 
 def insert_document_into_database(
