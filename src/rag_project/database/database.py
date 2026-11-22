@@ -16,7 +16,7 @@ from chonkie import (
     TokenChunker,
 )
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import SQLAlchemyError
@@ -238,6 +238,30 @@ def test_connection() -> None:
 
     except SQLAlchemyError as error:
         print("Datenbankverbindung fehlgeschlagen:", error)
+
+
+# TODO add call in main entrypoint
+def bootstrap_database(engine: Engine) -> None:
+    """
+    Create all tables in the database if they are not existing yet.
+
+    Args:
+        engine (Engine): The engine connected to the database where the
+            tables should be created.
+    """
+
+    from rag_project.database.metadata import Metadata  # noqa: F401, F811
+    from rag_project.database.models import (
+        Base,  # noqa: F811
+        ChunkingRun,  # noqa: F401, F811
+        Document,  # noqa: F401, F811
+        MetaData,  # noqa: F401, F811
+    )
+    from rag_project.database.models import (
+        Chunk as ChunkModel,  # noqa: F401
+    )
+
+    Base.metadata.create_all(engine)
 
 
 if __name__ == "__main__":
