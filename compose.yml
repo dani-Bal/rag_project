@@ -35,15 +35,12 @@ services:
       - PYTHONPATH=${PYTHONPATH:-/app}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
       - LLM_MODEL=${LLM_MODEL:-gpt-3.5-turbo}
-      - LLM_API_KEY=${LLM_API_KEY:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CHUNK_SIZE=${CHUNK_SIZE:-1000}
       - CHUNK_OVERLAP=${CHUNK_OVERLAP:-200}
       - TOP_K=${TOP_K:-5}
     ports:
       - "8000:8000"
-    volumes:
-      - ./src/rag_project:/app/rag_project
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,8 +61,6 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
       - "8501:8501"
-    volumes:
-      - ./src/rag_project:/app/rag_project
     depends_on:
       backend:
         condition: service_started
