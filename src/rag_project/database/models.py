@@ -5,14 +5,14 @@ from datetime import datetime
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import BigInteger, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, relationship
 from sqlalchemy.sql.sqltypes import DateTime
 from sqlalchemy.types import LargeBinary
 
 from rag_project.config import get_settings
 
 
-class Base(DeclarativeBase):
+class Base(MappedAsDataclass, DeclarativeBase):
     pass
 
 
@@ -29,7 +29,7 @@ class Chunk(Base):
     page_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     page_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, init=False)
     run_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("chunking_runs.id", ondelete="CASCADE"), nullable=False
     )
@@ -46,7 +46,7 @@ class ChunkingRun(Base):
 
     __table_args__ = (Index("idx_chunking_runs_document_id", "document_id"),)
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, init=False)
     document_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False
     )
@@ -54,14 +54,10 @@ class ChunkingRun(Base):
 
     embedding_model: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=True,
+        DateTime(timezone=True), server_default=func.now(), nullable=True, default=None
     )
     parameters: Mapped[dict[str, object]] = mapped_column(
-        JSONB,
-        nullable=False,
-        server_default="{}",
+        JSONB, nullable=False, server_default="{}", default_factory=lambda: {}
     )
 
 
@@ -69,7 +65,7 @@ class Document(Base):
     """Model a document stored in the database."""
 
     __tablename__ = "documents"
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, init=False)
     metadata_record: Mapped["MetaData"] = relationship(
         cascade="all, delete-orphan",
         single_parent=True,
