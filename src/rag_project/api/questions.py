@@ -46,7 +46,7 @@ def ask_question(
         context = AgentContext(
             session=session,
             embedding_client=embedding_client,
-            embedding_model_name=settings.embedding_model_name,
+            embedding_model_name=settings.embedding_model,
         )
         result = agent.run_sync(request.question, deps=context)
 
