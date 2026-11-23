@@ -1,4 +1,4 @@
-# Autor: Carsten Ostlender, 2026
+# Autor: Carsten Ostlender & Daniel Balbach, 2026
 # TODO: Unit Tests
 # Chunking in eigene Datei auslagern, um die Logik zu trennen und die Lesbarkeit zu verbessern.
 # DB und Chunking trennen
@@ -7,6 +7,7 @@ import sys
 from enum import StrEnum
 from pathlib import Path
 
+import psycopg
 from chonkie import (
     Chunk,
     LateChunker,
@@ -15,22 +16,25 @@ from chonkie import (
     SentenceChunker,
     TokenChunker,
 )
+from psycopg import sql
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy import text as sql_text
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from rag_project.config import get_settings
+from rag_project.database.document import ProcessedDocument
 from rag_project.database.metadata import Metadata
 from rag_project.database.models import (
-    Chunk as ChunkModel,
-)
-from rag_project.database.models import (
+    Base,
     ChunkingRun,
     Document,
     MetaData,
+)
+from rag_project.database.models import (
+    Chunk as ChunkModel,
 )
 from rag_project.database.process_pdf import process_pdf
 
@@ -77,7 +81,7 @@ def get_database_url_from_config() -> URL:
 def insert_document_into_database(
     session: Session,
     document_name: str,
-    document: Document,
+    document: ProcessedDocument,
     strategy: ChunkingStrategy,
     chunks: list[Chunk],
 ) -> None:
@@ -137,7 +141,7 @@ def insert_document_into_database(
 
 
 def insert_document(
-    session: Session, document_name: str, document: Document, strategy: ChunkingStrategy
+    session: Session, document_name: str, document: ProcessedDocument, strategy: ChunkingStrategy
 ) -> None:
 
     # Unsinnige und leere Eingaben abfangen
@@ -262,6 +266,53 @@ def bootstrap_database(engine: Engine) -> None:
     )
 
     Base.metadata.create_all(engine)
+
+
+def ensure_database(database_url: str | URL) -> None:
+    """Create the configured database if it does not already exist."""
+    target = make_url(database_url) if isinstance(database_url, str) else database_url
+    database_name = target.database
+    if not database_name:
+        raise ValueError("DATABASE_URL must include a database name")
+
+    maintenance_url = target.set(database="postgres", drivername="postgresql").render_as_string(
+        hide_password=False
+    )
+    with psycopg.connect(maintenance_url, autocommit=True) as connection:
+        exists = connection.execute(
+            "SELECT 1 FROM pg_database WHERE datname = %s", (database_name,)
+        ).fetchone()
+        if exists is None:
+            connection.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(database_name)))
+
+
+def seed_documents(src_folder: Path) -> None:
+    """Bootstrap the schema and insert embedded chunks from a PDF."""
+    if not src_folder.is_dir():
+        raise ValueError(f"Given path is not a directory: {src_folder}")
+    database_url = get_database_url_from_config()
+    ensure_database(database_url)
+    engine = create_engine(database_url)
+
+    # The extension must exist before SQLAlchemy creates the VECTOR column.
+    with engine.begin() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    Base.metadata.create_all(engine)
+    num_docs_inserted = 0
+    with Session(engine) as session, session.begin():
+        for src_doc_path in src_folder.glob("*.pdf"):
+            logger.debug(f"Processing document: {src_doc_path.name}")
+            pdf_data = Path(src_doc_path).read_bytes()
+            processed_doc = process_pdf(pdf_data)
+            insert_document(
+                session=session,
+                document_name=src_doc_path.name,
+                document=processed_doc,
+                strategy=ChunkingStrategy.FIXED_SIZE,
+            )
+            num_docs_inserted += 1
+            logger.info(f"Document inserted: {src_doc_path.name}")
+    logger.info(f"Inserted {num_docs_inserted} documents.")
 
 
 if __name__ == "__main__":
