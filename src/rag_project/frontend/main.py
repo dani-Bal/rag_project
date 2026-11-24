@@ -32,38 +32,37 @@ uploaded_file = st.file_uploader(
 if uploaded_file is not None:
     st.write("Chosen file:", uploaded_file.name)
     uploadButton: bool = st.button("Upload file")
-    if uploadButton:
+    if uploadButton and uploaded_file is not None:
         # If a file is uploaded, send it to the backend
-        if uploaded_file is not None:
-            files = {
-                "file": (
-                    uploaded_file.name,
-                    uploaded_file.getvalue(),
-                    uploaded_file.type,
-                )
-            }
+        files = {
+            "file": (
+                uploaded_file.name,
+                uploaded_file.getvalue(),
+                uploaded_file.type,
+            )
+        }
 
-            response = requests.post(API_URL_upload, files=files)
-            st.write("Button clicked")
-            st.write("Status Code:", response.status_code)
-            st.write("Response Text:", response.text)
+        response = requests.post(API_URL_upload, files=files)
+        st.write("Button clicked")
+        st.write("Status Code:", response.status_code)
+        st.write("Response Text:", response.text)
 
-            if response.status_code == 201:
-                data = response.json()
-                st.success("Datei erfolgreich hochgeladen!")
-                st.json(data)
+        if response.status_code == 201:
+            data = response.json()
+            st.success("Datei erfolgreich hochgeladen!")
+            st.json(data)
 
-            elif response.status_code == 400:
-                st.error("Die Datei ist leer.")
+        elif response.status_code == 400:
+            st.error("Die Datei ist leer.")
 
-            elif response.status_code == 413:
-                st.error("Die Datei ist zu groß.")
+        elif response.status_code == 413:
+            st.error("Die Datei ist zu groß.")
 
-            elif response.status_code == 415:
-                st.error(response.json()["detail"])
+        elif response.status_code == 415:
+            st.error(response.json()["detail"])
 
-            else:
-                st.error(f"Fehler ({response.status_code}): {response.text}")
+        else:
+            st.error(f"Fehler ({response.status_code}): {response.text}")
 
 
 # Start of Chat
