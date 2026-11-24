@@ -4,7 +4,7 @@ from pydantic_ai import RunContext
 from sqlalchemy import select
 
 from rag_project.agent.models import AgentContext, DocumentChunk
-from rag_project.database.models import Chunks as DocumentChunkDB
+from rag_project.database.models import Chunk as DocumentChunkDB
 
 
 def retrieve_most_relevant_documents(

@@ -39,6 +39,7 @@ services:
       - CHUNK_SIZE=${CHUNK_SIZE:-1000}
       - CHUNK_OVERLAP=${CHUNK_OVERLAP:-200}
       - TOP_K=${TOP_K:-5}
+      - SEED_DOCUMENTS_DIR=${SEED_DOCUMENTS_DIR:-/opt/seed_documents}
     ports:
       - "8000:8000"
     depends_on:
@@ -47,6 +48,8 @@ services:
     networks:
       - rag_network
     restart: unless-stopped
+    volumes:
+      - ./seed_documents:${SEED_DOCUMENTS_DIR:-/opt/seed_documents}
 
   # Frontend (Streamlit)
   frontend:
