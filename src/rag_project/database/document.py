@@ -4,7 +4,7 @@ from .metadata import Metadata
 
 
 @dataclass
-class Document:
+class ProcessedDocument:
     content: str
     metadata: Metadata
     original_file: bytes | None = None

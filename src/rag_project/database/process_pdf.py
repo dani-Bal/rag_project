@@ -6,13 +6,13 @@ from io import BytesIO
 from ftfy import fix_text
 from pypdf import PdfReader
 
-from .document import Document
+from .document import ProcessedDocument
 from .metadata import Metadata
 
 
 # Für alle: Verschiedene .doc Dokumente raussuchen und hochladen
 # Weitere Verarbeitungsschritte?
-def process_pdf(pdf_data: bytes) -> Document:
+def process_pdf(pdf_data: bytes) -> ProcessedDocument:
 
     reader = PdfReader(BytesIO(pdf_data))
     text = ""
@@ -31,7 +31,7 @@ def process_pdf(pdf_data: bytes) -> Document:
     # Tabelle extrahieren
 
     # print("Nach  dem Fix: " + text)
-    document = Document(text, metadata, pdf_data)
+    document = ProcessedDocument(text, metadata, pdf_data)
 
     return document
 
