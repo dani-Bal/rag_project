@@ -50,6 +50,11 @@ services:
     restart: unless-stopped
     volumes:
       - ./seed_documents:${SEED_DOCUMENTS_DIR:-/opt/seed_documents}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Frontend (Streamlit)
   frontend:
@@ -66,7 +71,7 @@ services:
       - "8501:8501"
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     networks:
       - rag_network
     restart: unless-stopped
