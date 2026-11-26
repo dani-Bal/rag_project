@@ -1,7 +1,7 @@
-import os
-import subprocess
 from typing import TypedDict, cast
+from urllib import response
 
+import requests
 import streamlit as st
 
 
@@ -10,7 +10,10 @@ class ChatMessage(TypedDict):
     content: str
 
 
-st.set_page_config(page_title="AI chatbot")
+API_URL_upload = "http://backend:8000/documents/upload"
+API_URL_questions = "http://backend:8000/questions"
+
+st.set_page_config(page_title="RAG system")
 
 st.title("Examplary RAG system Frontend")
 
@@ -18,8 +21,6 @@ st.title("Examplary RAG system Frontend")
 model = st.sidebar.selectbox("Choose Local Model", ["llama3.1", "qwen3.5", "gemma3:1b"])
 
 # Upload functionality
-# Define Upload-Ordner
-upload_folder = "UploadedFiles"
 
 # Create a button for upload
 st.header("Upload of files")
@@ -27,24 +28,45 @@ uploaded_file = st.file_uploader(
     "Choose a file to be uploaded (allowed: docx, md, pdf, txt)", type=["txt", "pdf", "docx", "md"]
 )
 
-# Actually upload the chosen file
+# Upload the chosen file
 if uploaded_file is not None:
     st.write("Chosen file:", uploaded_file.name)
     uploadButton: bool = st.button("Upload file")
-    if uploadButton:
-        # Check if file was uploaded successfully
-        if uploaded_file is not None:
-            filename = uploaded_file.name
-            filepath = os.path.join(upload_folder, filename)
-            with open(filepath, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            st.success("The file was uploaded successfully!")
+    if uploadButton and uploaded_file is not None:
+        # If a file is uploaded, send it to the backend
+        files = {
+            "file": (
+                uploaded_file.name,
+                uploaded_file.getvalue(),
+                uploaded_file.type,
+            )
+        }
+
+        response = requests.post(API_URL_upload, files=files)
+        st.write("Button clicked")
+        st.write("Status Code:", response.status_code)
+        st.write("Response Text:", response.text)
+
+        if response.status_code == 201:
+            data = response.json()
+            st.success("Datei erfolgreich hochgeladen!")
+            st.json(data)
+
+        elif response.status_code == 400:
+            st.error("Die Datei ist leer.")
+
+        elif response.status_code == 413:
+            st.error("Die Datei ist zu groß.")
+
+        elif response.status_code == 415:
+            st.error(response.json()["detail"])
+
         else:
-            st.error("Error while uploading the file")
+            st.error(f"Fehler ({response.status_code}): {response.text}")
 
 
 # Start of Chat
-st.header("AI Chatbot with local LLMs via Ollama")
+st.header("RAG Chatbot")
 
 # Chat memory
 if "messages" not in st.session_state:
@@ -55,7 +77,7 @@ messages: list[ChatMessage] = cast(
     st.session_state["messages"],
 )
 
-# Chat memory
+# Write Chat memory
 for msg in messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -69,12 +91,19 @@ if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Call Ollama
-    result = subprocess.run(["ollama", "run", model, user_input], capture_output=True, text=True)
+    # Send user input to backend
+    response = requests.post(API_URL_questions, json={"question": user_input})
 
-    reply = result.stdout.strip()
-
-    messages.append({"role": "assistant", "content": reply})
+    # Process the response
+    if response.status_code == 200:
+        data = response.json()
+        reply = data.get("answer", "No answer received.")
+        sources = data.get("sources", [])
+        messages.append({"role": "assistant", "content": reply})
+        messages.append({"role": "assistant", "content": f"Sources: {sources}"})
+    else:
+        reply = f"Fehler {response.status_code}: {response.text}"
 
     with st.chat_message("assistant"):
         st.markdown(reply)
+        st.markdown(f"Sources: {sources}")
