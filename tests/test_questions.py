@@ -11,12 +11,16 @@ client = TestClient(app)
 
 
 class FakeAgent:
-    def run_sync(self, question: str, deps: object) -> SimpleNamespace:
+    def run_sync(
+        self, question: str, deps: object, model_settings: dict[str, object] | None = None
+    ) -> SimpleNamespace:
         return SimpleNamespace(output="Dies ist eine TESTAntwort auf die Frage.")
 
 
 class FailingAgent:
-    def run_sync(self, question: str, deps: object) -> SimpleNamespace:
+    def run_sync(
+        self, question: str, deps: object, model_settings: dict[str, object] | None = None
+    ) -> SimpleNamespace:
         raise Exception("Simulierter TESTFehler beim Beantworten der Frage.")
 
 
