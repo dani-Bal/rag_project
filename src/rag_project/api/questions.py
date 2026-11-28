@@ -48,7 +48,8 @@ def ask_question(
             embedding_client=embedding_client,
             embedding_model_name=settings.embedding_model,
         )
-        result = agent.run_sync(request.question, deps=context)
+        result = agent.run_sync(request.question, deps=context, model_settings={"timeout": 120})
+        # TODO: Timeout anpassen, falls nötig
 
     except Exception as exc:
         logger.exception("Fehler beim beantworten der Frage")
